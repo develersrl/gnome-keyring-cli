@@ -631,6 +631,53 @@ static int list_items(int argc, char *argv[])
 	return status;
 }
 
+static int get_keyring_show(int argc, char *argv[])
+{
+	GnomeKeyringInfo *kinfo;
+	char *keyring = NULL;
+	time_t t;
+	GnomeKeyringResult result;
+
+	if (argc > 2) {
+		fprintf(stderr, "Usage: %s [keyring]\n", argv[0]);
+		return 1;
+	}
+
+	if (argc == 2)
+		keyring = g_strdup(argv[1]);
+
+	if (!keyring) {
+		result = gnome_keyring_get_default_keyring_sync(&keyring);
+
+		if (result != GNOME_KEYRING_RESULT_OK) {
+			g_critical("failed getting default keyring name: %s",
+				gnome_keyring_result_to_message(result));
+			return 1;
+		}
+
+		//printf("Default keyring name: %s\n", keyring);
+	}
+
+	result = gnome_keyring_get_info_sync(keyring, &kinfo);
+
+	if (result != GNOME_KEYRING_RESULT_OK) {
+		g_critical("failed getting keyring info: %s",
+			gnome_keyring_result_to_message(result));
+		return 1;
+	}
+
+	g_free(keyring);
+
+	if (gnome_keyring_info_get_is_locked(kinfo))
+		fputs("lock\n", stdout);
+	else
+		fputs("unlock\n", stdout);
+
+
+	gnome_keyring_info_free(kinfo);
+
+	return 0;
+}
 static int get_keyring_info(int argc, char *argv[])
 {
 	GnomeKeyringInfo *kinfo;
@@ -957,6 +1004,7 @@ int main (int argc, char *argv[])
 		{ "unlock", unlock_keyring },
 		{ "list", list_keyrings },
 		{ "info", get_keyring_info },
+		{ "show", get_keyring_show },
 		{ "items", list_items },
 		{ "create", create_keyring },
 		{ "delete", delete_keyring },
